@@ -7,8 +7,8 @@ Quantum Algorithm as a PDE Solver for Computational Fluid Dynamics (CFD)
 (Pending...)
 
 ## Team Members
-- **James Austin Myers**: WISER Enrollment ID: WP2025-XXXX (Placeholder)
-- **Fanizza Tarum Tahir**: WISER Enrollment ID: WP2025-YYYY (Placeholder)
+- **Fanizza Tarum Tahir**: WISER Enrollment ID: WP2025-XXXX (Placeholder)
+- **James Austin Myers**: WISER Enrollment ID: WP2025-YYYY (Placeholder)
 - **Ramachandran Sekanipuram Srikanth**: WISER Enrollment ID: WP2025-ZZZZ (Placeholder)
 
 *Note: WISER Enrollment IDs are placeholders and will be updated upon receipt.*
