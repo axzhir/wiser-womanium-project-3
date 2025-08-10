@@ -8,11 +8,11 @@ Flödinger
 
 ## Team Members
 - **Fanizza Tarum Tahir**: WISER Enrollment ID: gst-UV3r5RuEyWXEeON
-- **James Austin Myer**: WISER Enrollment ID: WP2025-YYYY (Placeholder)
+- **James Austin Myer**: WISER Enrollment ID: gst-YPgLYog6eIo6JnE
 - **Ramachandran Sekanipuram Srikanthan**: WISER Enrollment ID: gst-TnqxR0ZVOHep4gl
 
 
-## Project Summary (500 Words)
+## Project Summary
 We solve the Burgers' equation for a 1-dimensional shock tube (Burgers' 1-D) via discovery of optimal parameters (a, m) for a Schrödinger equation such that its Madelung transform is as close as possible to the desired Burgers' equation (with appropriate boundary & initial conditions).
 
 **Tasks:**  
@@ -55,7 +55,13 @@ Report.pdf  - Repo file which has the report.
 
 <OL>
 <LI>Zhaoyuan Meng and Yue Yang. Quantum computing of fluid dynamics using the hydrodynamic Schrödinger equation. Phys. Rev. Research 5, 033182 https://doi.org/10.1103/PhysRevResearch.5.033182</LI>
-<LI>https://www.bqpsim.com/blogs/quantum-fluids-explain-turbulence-in-classical-fluids</LI>
+<LI>Sreenivasan, Katepalli R. "Chandrasekhar's Fluid Dynamics." Annual Review of Fluid Mechanics 51 (2019): 1-24.</LI>
+<LI>Barenghi, Carlo F., and Nick G. Parker. A primer on quantum fluids. Berlin: Springer, 2016.</LI>
+<LI>La Mantia, M., and L. Skrbek. "Quantum, or classical turbulence?." EPL (Europhysics Letters) 105.4 (2014): 46002.</LI>
+<LI>Skrbek, Ladislav, and Katepalli R. Sreenivasan. "How similar is quantum turbulence to classical turbulence?." Ten Chapters in Turbulence. Cambridge University Press, 2010. 405-4.</LI>
+<LI>Wang, Xueying. "Quantum Turbulence, and How it is Related to Classical Turbulence." (2018).</LI>
+<LI> https://youtu.be/2E-_VwyTeIU 
+
 </OL>
 
 ## License
