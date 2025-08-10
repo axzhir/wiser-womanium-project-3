@@ -39,6 +39,11 @@ import matplotlib.pyplot as plt
 # Useful for displaying equations symbolically
 import sympy as sp
 
+# Import time and csv for timing and saving outputs
+import time
+import csv
+import os
+
 # Number of qubits = number of spatial discretization points
 # Defines size of the quantum system
 Nx = 8
@@ -51,161 +56,102 @@ layers = 3
 # This initializes a classical simulator for quantum circuits with Nx qubits
 dev = qml.device("default.qubit", wires=Nx)
 
-# Define the target Gaussian wavefunction
-# This function creates a normalized Gaussian wavefunction over 2^Nx basis states
+# ----------------------------
+# Target wavefunction (Gaussian)
+# ----------------------------
 def target_wavefunction(Nx):
-    # Calculate total number of basis states (2^Nx)
+    """Return a normalized Gaussian wavefunction over 2^Nx basis states."""
     num_states = 2**Nx
-
-    # Generate spatial grid points evenly spaced from 0 to 1
     x_points = np.linspace(0, 1, num_states)
-
-    # Set Gaussian center (mean)
     x0 = 0.5
-
-    # Set Gaussian width (standard deviation)
     sigma = 0.1
-
-    # Compute Gaussian amplitude at each spatial point
     amplitudes = np.exp(- (x_points - x0)**2 / (2 * sigma**2))
-
-    # Normalize amplitudes so the wavefunction has norm 1
     psi0 = amplitudes / np.linalg.norm(amplitudes)
-
-    # Return normalized wavefunction as a numpy array
     return psi0
 
 # Store the target wavefunction as a PennyLane numpy array (no gradient required)
 target_psi = qml.numpy.array(target_wavefunction(Nx), requires_grad=False)
 
-# Define the layered Schrodinger ansatz circuit
-# This prepares the quantum state using parameters and scalars a, m
+# ----------------------------
+# Quantum ansatz and qnode
+# ----------------------------
 def layered_schrodinger_ansatz(params, a, m):
-    # Loop over each layer of the ansatz
+    """Parameterized ansatz: RY(a*param) and RZ(m*param) per qubit, then CNOT chain."""
     for layer in range(layers):
-        # Apply parameterized rotations on each qubit
         for i in range(Nx):
-            # Rotate around Y axis scaled by a * parameter
             qml.RY(a * params[layer, i, 0], wires=i)
-            # Rotate around Z axis scaled by m * parameter
             qml.RZ(m * params[layer, i, 1], wires=i)
-        # Entangle adjacent qubits with CNOT gates
         for i in range(Nx - 1):
             qml.CNOT(wires=[i, i + 1])
 
-# Define the quantum node to run the circuit and return full statevector
 @qml.qnode(dev)
 def wavefunction_qnode(params, a, m):
-    # Prepare the quantum state using the ansatz circuit
+    """Return full statevector after ansatz."""
     layered_schrodinger_ansatz(params, a, m)
-    # Return the full quantum statevector as complex amplitudes
     return qml.state()
 
-# Madelung transform: compute density and velocity fields from quantum state
+# ----------------------------
+# Madelung transform, losses
+# ----------------------------
 def madelung_from_state(state, m=1.0):
-    # Extract complex wavefunction amplitudes
+    """Return density rho and velocity v from complex state via Madelung transform."""
     psi = state
-
-    # Density is squared magnitude of wavefunction
     rho = qml.math.abs(psi)**2
-
-    # Phase angle of wavefunction (argument of complex number)
     phase = qml.math.angle(psi)
-
-    # Compute spatial gradient of the phase
     dphase_dx = qml.math.gradient(phase)
-
-    # Use a safe epsilon to avoid division by zero if mass near zero
     safe_m = m if abs(qml.math.toarray(m).item()) > 1e-8 else 1e-8
-
-    # Velocity field is phase gradient divided by mass
     v = dphase_dx / safe_m
-
-    # Return density and velocity arrays
     return rho, v
 
-# Calculate fidelity between two quantum states
 def fidelity(state1, state2):
-    # Compute complex overlap between states
+    """Squared overlap fidelity between two states."""
     overlap = qml.math.sum(qml.math.conj(state1) * state2)
-
-    # Fidelity is absolute square of overlap amplitude
     return qml.math.abs(overlap)**2
 
-# Compute Burgers equation residual loss from velocity field
 def burgers_residual(v):
-    # Compute spatial gradient of velocity
+    """Mean squared Burgers residual from velocity field (v * dv/dx)."""
     dv_dx = qml.math.gradient(v)
-
-    # Residual is nonlinear term v * dv/dx
     residual = v * dv_dx
-
-    # Return mean squared residual as loss measure
     return qml.math.mean(residual**2)
 
-# Boundary penalty to enforce zero wavefunction amplitude at edges
 def boundary_penalty(state):
-    # Sum squared amplitudes at first and last basis states (edges)
+    """Simple boundary penalty (|psi(0)|^2 + |psi(L)|^2)."""
     penalty = qml.math.abs(state[0])**2 + qml.math.abs(state[-1])**2
-
-    # Return penalty scalar
     return penalty
 
-# Global counter to track optimization steps for debugging prints
+# ----------------------------
+# Debugging, printing helpers
+# ----------------------------
 global_step = 0
 
-# Print symbolic form of Madelung equation given parameters a and m
 def print_madelung_equation(a_val, m_val):
-    # Define symbolic variables for density, velocity, pressure, time, and hbar
+    """Print symbolic Madelung equation with given a,m (for presentation/debug)."""
     rho, v, P, t, hbar = sp.symbols('rho v P t hbar')
-
-    # Define symbolic Laplacian and gradient operators as functions
     laplacian = sp.Function('∇²')
     gradient = sp.Function('∇')
-
-    # Quantum potential coefficient depending on hbar and mass m_val
     quantum_potential_coeff = (hbar**2) / (4 * m_val)
-
-    # Quantum potential term in Madelung equation
     quantum_potential = quantum_potential_coeff * laplacian(sp.log(rho))
-
-    # Left-hand side of the equation: time derivative of velocity and convective term
     lhs = rho * sp.Derivative(v, t) + sp.Symbol('(v ⋅ ∇)v')
-
-    # Right-hand side: gradient of pressure plus quantum potential
     rhs = -gradient(P + quantum_potential)
-
-    # Construct symbolic equation
     eq = sp.Eq(lhs, rhs)
-
-    # Set reduced Planck constant hbar = 1 (natural units)
     eq = eq.subs(hbar, 1)
-
-    # Print equation nicely
     print("\n--- Madelung Equation with a = {}, m = {} (ℏ = 1) ---".format(a_val, m_val))
     sp.pprint(eq, use_unicode=True)
     print("------------------------------------------------------------------------------------------------------------------------\n")
 
-# Define total loss function combining PDE residual, fidelity, and boundary penalties
 def loss_fn(params, a, m, alpha=10, beta=50):
+    """Total loss combining Burgers residual + fidelity penalty + boundary penalty."""
     global global_step
 
-    # Warn if mass parameter is dangerously close to zero
     if abs(qml.math.toarray(m).item()) < 1e-7:
         print("Warning: m is near zero, using safe epsilon")
         print("------------------------------------------------------------------------------------------------------------------------")
 
-    # Compute quantum state from parameters using the ansatz
     state = wavefunction_qnode(params, a, m)
-
-    # Extract density and velocity fields from the quantum state
     rho, v = madelung_from_state(state, m)
-
-    # Compute spatial gradient and residual for debugging output
     dv_dx = qml.math.gradient(v)
     residual = v * dv_dx
 
-    # Every 10 steps, print debug info for residuals and gradients
     if global_step % 10 == 0:
         print(f"Step {global_step}: Burgers Residual (first 5 values): {qml.math.toarray(residual)[:5]}")
         print("------------------------------------------------------------------------------------------------------------------------")
@@ -214,7 +160,6 @@ def loss_fn(params, a, m, alpha=10, beta=50):
         print(f"Step {global_step}: Mean squared residual: {qml.math.toarray(qml.math.mean(residual**2))}")
         print("------------------------------------------------------------------------------------------------------------------------")
 
-    # On first step, print symbolic Madelung equation and numeric arrays
     if global_step == 0:
         a_val = qml.math.toarray(a).item()
         m_val = qml.math.toarray(m).item()
@@ -230,167 +175,221 @@ def loss_fn(params, a, m, alpha=10, beta=50):
 
     global_step += 1
 
-    # Compute Burgers equation residual loss term
     burgers_loss = burgers_residual(v)
-
-    # Compute fidelity loss to match target wavefunction
     fidelity_loss = 1 - fidelity(state, target_psi)
-
-    # Compute boundary penalty loss for zero edge amplitudes
     boundary_loss = boundary_penalty(state)
-
-    # Combine all losses with weighting coefficients alpha and beta
     total_loss = burgers_loss + alpha * fidelity_loss + beta * boundary_loss
-
-    # Return combined loss value
     return total_loss
 
-# Fix random seed for reproducibility of results
+# ----------------------------
+# Classical Burgers solver (finite difference) for reference
+# ----------------------------
+def classical_burgers(u0, dx, dt, nu, steps, periodic=True):
+    """
+    Simple explicit scheme for viscous Burgers:
+    u^{n+1}_i = u^n_i - dt * u_i * (u_{i} - u_{i-1})/dx + nu * dt * (u_{i+1} - 2 u_i + u_{i-1})/dx^2
+    This is a simple, not-fully-stable scheme; chosen for clarity and short-time integration.
+    """
+    u = u0.copy()
+    traj = [u.copy()]
+    N = len(u0)
+    for n in range(steps):
+        u_next = np.zeros_like(u)
+        for i in range(N):
+            im = (i-1) % N if periodic else max(i-1, 0)
+            ip = (i+1) % N if periodic else min(i+1, N-1)
+            adv = u[i] * (u[i] - u[im]) / dx
+            diff = nu * (u[ip] - 2*u[i] + u[im]) / (dx*dx)
+            u_next[i] = u[i] - dt * adv + dt * diff
+        u = u_next
+        traj.append(u.copy())
+    return np.array(traj)  # shape (steps+1, N)
+
+# ----------------------------
+# Resource estimate helper (very rough)
+# ----------------------------
+def resource_estimate(Nx, layers):
+    """Print a quick resource estimate: qubits, two-qubit gate depth (rough)."""
+    qubits = Nx
+    # crude two-qubit depth estimate = layers * (Nx-1) (one CNOT chain per layer)
+    two_qubit_depth = layers * (Nx - 1)
+    print("---- RESOURCE ESTIMATE ----")
+    print(f"Qubits required: {qubits}")
+    print(f"Estimated two-qubit gate depth (approx): {two_qubit_depth}")
+    print("Note: this is a crude estimate; gate counts depend on transpilation & mapping.")
+    print("----------------------------")
+
+# ----------------------------
+# Setup, initial params, optimizer
+# ----------------------------
 np.random.seed(42)
-
-# Initialize ansatz parameters with small random values
 params = 0.01 * np.random.randn(layers, Nx, 2)
-
-# Convert params to PennyLane array with gradient tracking enabled
 params = qml.numpy.array(params, requires_grad=True)
 
-# Initialize scalar parameters a and m with gradient tracking
 a_param = qml.numpy.array(1.0, requires_grad=True)
 m_param = qml.numpy.array(1.0, requires_grad=True)
 
-# Create Adam optimizer instance with learning rate 0.05
 opt = qml.AdamOptimizer(stepsize=0.05)
 
-# Prepare lists to store history of loss and parameters during optimization
 loss_history = []
 a_history = []
 m_history = []
+l2_history = []
+time_history = []
 
-# Set number of optimization steps to run
 num_steps = 50
-
-# Generate spatial x points for plotting density and velocity (2^Nx points)
 plotting_x_points = np.linspace(0, 1, 2**Nx)
 
-# Enable interactive mode for live updating plots
-plt.ion()
+# ----------------------------
+# Precompute classical reference trajectory
+# ----------------------------
+# Build initial classical velocity from the target wavefunction phase (m=1)
+# This tries to set classical initial condition to the same physical velocity used in the Madelung transform.
+psi_target = np.array(target_psi)
+phase_target = np.angle(psi_target)
+dx = 1.0 / (len(phase_target) - 1) if len(phase_target) > 1 else 1.0
+# safe initial mass for reference (use m=1)
+safe_m0 = 1.0
+u0 = np.gradient(phase_target) / safe_m0  # initial velocity for classical solver
+# classical solver parameters (choose dt consistent with dx for stability)
+dt = 0.001
+nu = 0.001  # small viscosity
+print("Precomputing classical Burgers trajectory for comparison...")
+classical_traj = classical_burgers(u0, dx=dx, dt=dt, nu=nu, steps=num_steps, periodic=True)
+# classical_traj has shape (num_steps+1, N); we'll compare step n to classical_traj[n]
+print("Done precomputing classical trajectory.")
 
-# Create a single subplot figure for plotting wavefunction properties
+# Save CSV header
+out_dir = "run_outputs"
+os.makedirs(out_dir, exist_ok=True)
+csv_path = os.path.join(out_dir, "optimization_history.csv")
+with open(csv_path, "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["step", "loss", "a", "m", "L2_error", "step_time_seconds"])
+
+# Print resource estimate to help Algorithm Design Brief
+resource_estimate(Nx, layers)
+
+# ----------------------------
+# Interactive plotting setup
+# ----------------------------
+plt.ion()
 fig, axs = plt.subplots(1, 1, figsize=(8, 5))
 
-# Optimization loop over defined number of steps
+# ----------------------------
+# Optimization loop
+# ----------------------------
 for step in range(num_steps):
-    # Save old values for printing changes
     old_a = qml.math.toarray(a_param).item()
     old_m = qml.math.toarray(m_param).item()
 
-    # Define cost function wrapper for optimizer input
     def cost(p, a_, m_):
         return loss_fn(p, a_, m_)
 
-    # Perform one optimization step updating params, a_param, m_param simultaneously
+    t0 = time.time()
     (params, a_param, m_param), curr_loss = opt.step_and_cost(cost, params, a_param, m_param)
+    step_time = time.time() - t0
 
-    # Get new values for printing changes
     new_a = qml.math.toarray(a_param).item()
     new_m = qml.math.toarray(m_param).item()
 
-    # Append current loss and parameter values to history lists
+    # Get quantum-derived velocity
+    state = wavefunction_qnode(params, a_param, m_param)
+    rho, v_q = madelung_from_state(state, m_param)
+    v_q_arr = qml.math.toarray(v_q)
+
+    # Compare with classical reference (use index 'step' from precomputed traj)
+    # If classical time-step differs, we still compare using index-matching for demonstration.
+    u_ref = classical_traj[min(step, classical_traj.shape[0]-1)]
+    # L2 error (discrete)
+    l2 = np.linalg.norm(v_q_arr - u_ref) / np.sqrt(len(u_ref))
+
+    # store histories
     loss_history.append(qml.math.toarray(curr_loss).item())
     a_history.append(new_a)
     m_history.append(new_m)
+    l2_history.append(l2)
+    time_history.append(step_time)
 
-    # Print optimization progress with changes to a and m
+    # Print with step-divider and delta formatting
     print(f"Step {step + 1:02d}: Loss={curr_loss:.6f}, a: {old_a:.6f} -> {new_a:.6f}, m: {old_m:.6f} -> {new_m:.6f}")
+    print(f"  Step runtime (s): {step_time:.4f}, L2 error vs classical: {l2:.6f}")
     print("------------------------------------------------------------------------------------------------------------------------")
 
-    # Clear current axes for fresh plotting
+    # Append to CSV
+    with open(csv_path, "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([step+1, float(qml.math.toarray(curr_loss).item()), new_a, new_m, float(l2), float(step_time)])
+
+    # Update live plot (density + velocity)
     axs.cla()
-
-    # Compute state and Madelung variables for plotting
-    state = wavefunction_qnode(params, a_param, m_param)
-    rho, v = madelung_from_state(state, m_param)
-
-    # Plot current density and velocity on x axis
-    axs.plot(plotting_x_points, rho, label='Density |ψ|²')
-    axs.plot(plotting_x_points, v, label='Velocity (Madelung)')
-
-    # Set plot title and axis labels
+    axs.plot(plotting_x_points, qml.math.toarray(rho), label='Density |ψ|²')
+    axs.plot(plotting_x_points, v_q_arr, label='Velocity (Madelung) - quantum')
+    axs.plot(plotting_x_points, u_ref, label='Velocity - classical ref', linestyle='dotted')
     axs.set_title(f'Wavefunction Properties at Step {step + 1}')
     axs.set_xlabel('x')
-
-    # Display legend and grid for readability
     axs.legend()
     axs.grid(True)
-
-    # Refresh plot canvas to update visualization
     fig.canvas.draw()
     fig.canvas.flush_events()
 
-# Disable interactive plotting mode after optimization completes
+# ----------------------------
+# Final plots: Loss + parameters + L2 error
+# ----------------------------
 plt.ioff()
 
-# Create final static plot showing loss and parameter history over all steps
-plt.figure(figsize=(8, 5))
-
-# Get current axis for plotting loss
+plt.figure(figsize=(10,6))
 ax1 = plt.gca()
-
-# Plot loss values over steps with red color
 ax1.plot(loss_history, color='tab:red', label='Loss')
-
-# Label x-axis and y-axis for loss
 ax1.set_xlabel('Step')
 ax1.set_ylabel('Loss', color='tab:red')
-
-# Set y-axis tick color and enable grid lines
 ax1.tick_params(axis='y', labelcolor='tab:red')
 ax1.grid(True)
 
-# Create secondary y-axis to plot parameters a and m on different scale
 ax2 = ax1.twinx()
-
-# Plot parameter 'a' history with blue dashed line
 ax2.plot(a_history, color='tab:blue', linestyle='--', label='a')
-
-# Plot parameter 'm' history with green dotted line
 ax2.plot(m_history, color='tab:green', linestyle=':', label='m')
-
-# Label secondary y-axis for parameters
-ax2.set_ylabel('Parameters a & m', color='tab:blue')
+ax2.plot(l2_history, color='tab:purple', linestyle='-', label='L2 error')
+ax2.set_ylabel('Parameters a, m and L2 error', color='tab:blue')
 ax2.tick_params(axis='y', labelcolor='tab:blue')
 
-# Combine legends from both y-axes into one
 lines_1, labels_1 = ax1.get_legend_handles_labels()
 lines_2, labels_2 = ax2.get_legend_handles_labels()
 ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right')
 
-# Set overall plot title and display it
-plt.title("Loss and Parameters Over All Steps")
+plt.title("Loss, Parameters, and L2 Error Over Steps")
 plt.show()
 
-# Print completion message with final optimized parameters
+# Save aggregated CSV summary
+summary_csv = os.path.join(out_dir, "summary_stats.csv")
+with open(summary_csv, "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["final_loss", "final_a", "final_m", "mean_L2_error", "total_time_seconds"])
+    writer.writerow([loss_history[-1], a_history[-1], m_history[-1], np.mean(l2_history), np.sum(time_history)])
+
+# Print completion message
 print("------------------------------------------------------------------------------------------------------------------------")
 print("Optimization complete!")
-print("------------------------------------------------------------------------------------------------------------------------")
 print(f"Final a: {a_param:.6f}, Final m: {m_param:.6f}")
+print(f"Saved detailed history to: {csv_path}")
+print(f"Saved summary stats to: {summary_csv}")
 print("------------------------------------------------------------------------------------------------------------------------")
 
-# --- Now run comparison for fixed (a, m) = (1, 0) with debug prints ---
-
-# Reset global step counter to print debug info in loss_fn
+# Run comparison with fixed (a,m)=(1,0) and print debug outputs
 global_step = 0
-
-# Define fixed scalar parameters to compare against
 fixed_a = 1.0
 fixed_m = 0.0
-
-# Compute loss with fixed parameters (a=1, m=0) for comparison
 comparison_loss = loss_fn(params, fixed_a, fixed_m)
-
-# Print comparison loss result
 print("Comparison output for (a, m) = (1, 0):")
 print("------------------------------------------------------------------------------------------------------------------------")
 print(f"Loss: {qml.math.toarray(comparison_loss).item():.6f}")
 print("------------------------------------------------------------------------------------------------------------------------")
 
+"""# Algorithm Comparison
+
+The error message suggests that you have conflicting versions of Qiskit installed. To resolve this, it's recommended to create a new virtual environment and install the required packages there.
+
+Here's the code to create a new virtual environment, activate it, and then reinstall the necessary packages (`qiskit`, `pennylane`, `qiskit-ibmq-provider`, and `tntorch`).
+
+**Note:** Running this code will restart the Colab runtime as it switches to the new environment. You will need to re-run all the cells after the runtime restarts.
+"""
