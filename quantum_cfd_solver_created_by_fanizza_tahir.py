@@ -18,10 +18,9 @@ import seaborn as sns
 
 import torch
 
-"""Run command
-python -u script/simulation_script.py 1.5 10 3e-3 2e-3 circle 8 7
+"""# Quantum Algorithm as a PDE Solver for Computational Fluid Dynamics (CFD)
 
-# Solving the Hydrodynamic Schrödinger Equation?
+### The code below solves the Hydroynamic Schrödinger Equation
 """
 
 # Import PennyLane for quantum computing
@@ -185,7 +184,7 @@ def print_madelung_equation(a_val, m_val):
     # Print equation nicely
     print("\n--- Madelung Equation with a = {}, m = {} (ℏ = 1) ---".format(a_val, m_val))
     sp.pprint(eq, use_unicode=True)
-    print("-----------------------------------------------------\n")
+    print("------------------------------------------------------------------------------------------------------------------------\n")
 
 # Define total loss function combining PDE residual, fidelity, and boundary penalties
 def loss_fn(params, a, m, alpha=10, beta=50):
@@ -194,7 +193,7 @@ def loss_fn(params, a, m, alpha=10, beta=50):
     # Warn if mass parameter is dangerously close to zero
     if abs(qml.math.toarray(m).item()) < 1e-7:
         print("Warning: m is near zero, using safe epsilon")
-        print("--------------------------------------------------")
+        print("------------------------------------------------------------------------------------------------------------------------")
 
     # Compute quantum state from parameters using the ansatz
     state = wavefunction_qnode(params, a, m)
@@ -209,11 +208,11 @@ def loss_fn(params, a, m, alpha=10, beta=50):
     # Every 10 steps, print debug info for residuals and gradients
     if global_step % 10 == 0:
         print(f"Step {global_step}: Burgers Residual (first 5 values): {qml.math.toarray(residual)[:5]}")
-        print("--------------------------------------------------")
+        print("------------------------------------------------------------------------------------------------------------------------")
         print(f"Step {global_step}: Velocity Gradient (first 5 values): {qml.math.toarray(dv_dx)[:5]}")
-        print("--------------------------------------------------")
+        print("------------------------------------------------------------------------------------------------------------------------")
         print(f"Step {global_step}: Mean squared residual: {qml.math.toarray(qml.math.mean(residual**2))}")
-        print("--------------------------------------------------")
+        print("------------------------------------------------------------------------------------------------------------------------")
 
     # On first step, print symbolic Madelung equation and numeric arrays
     if global_step == 0:
@@ -221,13 +220,13 @@ def loss_fn(params, a, m, alpha=10, beta=50):
         m_val = qml.math.toarray(m).item()
         print_madelung_equation(a_val, m_val)
         print(f"Numeric values at step 0 for a={a_val}, m={m_val}:")
-        print("--------------------------------------------------")
-        print(f"  Density (first 5): {qml.math.toarray(rho)[:5]}")
-        print("--------------------------------------------------")
-        print(f"  Velocity (first 5): {qml.math.toarray(v)[:5]}")
-        print("--------------------------------------------------")
-        print(f"  Burgers Residual (first 5): {qml.math.toarray(residual)[:5]}")
-        print("--------------------------------------------------")
+        print("------------------------------------------------------------------------------------------------------------------------")
+        print(f"Density (first 5): {qml.math.toarray(rho)[:5]}")
+        print("------------------------------------------------------------------------------------------------------------------------")
+        print(f"Velocity (first 5): {qml.math.toarray(v)[:5]}")
+        print("------------------------------------------------------------------------------------------------------------------------")
+        print(f"Burgers Residual (first 5): {qml.math.toarray(residual)[:5]}")
+        print("------------------------------------------------------------------------------------------------------------------------")
 
     global_step += 1
 
@@ -303,7 +302,7 @@ for step in range(num_steps):
 
     # Print optimization progress with changes to a and m
     print(f"Step {step + 1:02d}: Loss={curr_loss:.6f}, a: {old_a:.6f} -> {new_a:.6f}, m: {old_m:.6f} -> {new_m:.6f}")
-    print("--------------------------------------------------")
+    print("------------------------------------------------------------------------------------------------------------------------")
 
     # Clear current axes for fresh plotting
     axs.cla()
@@ -371,10 +370,11 @@ plt.title("Loss and Parameters Over All Steps")
 plt.show()
 
 # Print completion message with final optimized parameters
+print("------------------------------------------------------------------------------------------------------------------------")
 print("Optimization complete!")
-print("--------------------------------------------------")
+print("------------------------------------------------------------------------------------------------------------------------")
 print(f"Final a: {a_param:.6f}, Final m: {m_param:.6f}")
-print("--------------------------------------------------")
+print("------------------------------------------------------------------------------------------------------------------------")
 
 # --- Now run comparison for fixed (a, m) = (1, 0) with debug prints ---
 
@@ -389,8 +389,8 @@ fixed_m = 0.0
 comparison_loss = loss_fn(params, fixed_a, fixed_m)
 
 # Print comparison loss result
-print("\nComparison output for (a, m) = (1, 0):")
-print("--------------------------------------------------")
+print("Comparison output for (a, m) = (1, 0):")
+print("------------------------------------------------------------------------------------------------------------------------")
 print(f"Loss: {qml.math.toarray(comparison_loss).item():.6f}")
-print("--------------------------------------------------")
+print("------------------------------------------------------------------------------------------------------------------------")
 
