@@ -37,19 +37,26 @@ We solve the Burgers' equation for a 1-dimensional shock tube (Burgers' 1-D) via
 
 ## Repository Structure
 ```
-Unknown
+quantum_cfd_solver_created_by_Fanizza_Tahir.ipynb - Implementation Notebook
+quantum_cfd_solver_created_by_fanizza_tahir.py - Implementation file
+optimization_history.csv - train results
+summary_stats.csv - Optimized values and associated error.
+Report.pdf - Implementation Report
 ```
 
 ## Installation and Setup
 1. Clone the repository: `git clone https://github.com/axzhir/wiser-womanium-project-3.git`
-2. Install dependencies: `pip install -r requirements.txt`
 3. Run Jupyter notebooks or Python scripts in the respective task directories.
 
 ## Usage Report
-- **Tasks:**
+Report.pdf  - Repo file which has the report.
 
 ## References
-- Unknown
+
+<OL>
+<LI>Zhaoyuan Meng and Yue Yang. Quantum computing of fluid dynamics using the hydrodynamic Schrödinger equation. Phys. Rev. Research 5, 033182 https://doi.org/10.1103/PhysRevResearch.5.033182</LI>
+<LI>https://www.bqpsim.com/blogs/quantum-fluids-explain-turbulence-in-classical-fluids</LI>
+</OL>
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
