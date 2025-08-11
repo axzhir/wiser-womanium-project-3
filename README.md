@@ -36,6 +36,10 @@ We solve the Burgers' equation for a 1-dimensional shock tube (Burgers' 1-D) via
 
 <a href="https://docs.google.com/presentation/d/1IC_zrRhK3f3vYvj-IyBRz7qliAawMNREAn9lE4xF0Ic/edit?usp=sharing">Presentation</a>
 
+# Video Presentation
+
+<a href="https://urldefense.com/v3/__https://ccny.zoom.us/rec/share/WjrMtEeorcY1Zl6LbYUo9ZgXluJGcMtOxMU3jZGdmLXQ8LvH6OgtIeJFX-JO5DVM.H9gpuuteq8ZRDJIT__;!!MTWKpDe2aQ!MOP8bc3_sxCQ2SX08q9ab4EF2tiy_wcMaUPreMQL5izy8n65vnQ9Lg_zlt7v0-8quX6rfBC4QaoaWjYZ_c7T$">Video presentation </a>
+
 ## Repository Structure
 ```
 quantum_cfd_solver_created_by_Fanizza_Tahir.ipynb - Implementation Notebook
