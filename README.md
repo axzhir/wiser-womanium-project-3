@@ -4,7 +4,7 @@
 Quantum Algorithm as a PDE Solver for Computational Fluid Dynamics (CFD)
 
 ## Team Name
-Flö
+FLÖ
 
 ## Team Members
 - **Fanizza Tarum Tahir**: WISER Enrollment ID: gst-UV3r5RuEyWXEeON
