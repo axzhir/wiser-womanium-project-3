@@ -33,7 +33,8 @@ We solve the Burgers' equation for a 1-dimensional shock tube (Burgers' 1-D) via
 </OL>
 
 ## Project Presentation Deck
-[Link to Presentation Deck] (It doesn't exist yet.)
+
+<a href="https://docs.google.com/presentation/d/1IC_zrRhK3f3vYvj-IyBRz7qliAawMNREAn9lE4xF0Ic/edit?usp=sharing">Presentation</a>
 
 ## Repository Structure
 ```
@@ -41,7 +42,8 @@ quantum_cfd_solver_created_by_Fanizza_Tahir.ipynb - Implementation Notebook
 quantum_cfd_solver_created_by_fanizza_tahir.py - Implementation file
 optimization_history.csv - train results
 summary_stats.csv - Optimized values and associated error.
-Report.pdf - Implementation Report
+Algorithm_Design_Brief_for_2025_Womanium___WISER_project_3__Quantum_PDE_solvers_for_CFD_with_Fanizza_Tahir___Ramachandran_Sekanipuram_Srikanth (3).pdf - Implementation Report
+FLÖ.pdf - Presentation
 ```
 
 ## Installation and Setup
@@ -49,7 +51,7 @@ Report.pdf - Implementation Report
 3. Run Jupyter notebooks or Python scripts in the respective task directories.
 
 ## Usage Report
-Report.pdf  - Repo file which has the report.
+Algorithm_Design_Brief_for_2025_Womanium___WISER_project_3__Quantum_PDE_solvers_for_CFD_with_Fanizza_Tahir___Ramachandran_Sekanipuram_Srikanth.pdf  - Repo file which has the report.
 
 ## References
 
